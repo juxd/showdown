@@ -1,11 +1,12 @@
 (defpackage potato-srv
-  (:use :cl :woo :alexandria)
+  (:use :cl)
   (:export #:start))
 
 (in-package :potato-srv)
 
 (defparameter *application-root* (asdf:system-source-directory :potato-srv))
 (defparameter *templates-directory* (merge-pathnames #P"templates/" *application-root*))
+(djula:add-template-directory *templates-directory*)
 
 (defun ok-html (content)
   `(200 (:content-type "text/html") ,content))
@@ -16,8 +17,10 @@
           (+ num 1)
           num))
 
-(defun handle-name (name)
-  (declare (ignore name))
+(defun redirect-to-main ()
+  '(301 (:location "/") ()))
+
+(defun handle-main ()
   (ok-html (merge-pathnames #P"main.html" *templates-directory*)))
 
 (defun handle-error ()
@@ -42,7 +45,8 @@
        (let ((s (str:split #\/ path-info :omit-nulls t)))
          (format t "we got this: ~a ~a ~a~%" query-string path-info (length s))
          (case (length s)
+           (0 (handle-main))
            (1 (let ((s (nth 0 s)))
                 (cond ((string= s "send") (handle-send query-string))
-                      (t (handle-name s)))))
-           (t (handle-error))))))))
+                      (t (handle-error)))))
+           (t (redirect-to-main))))))))
