@@ -1,0 +1,9 @@
+#+TITLE: Potato Salad
+
+* bruh
+
+** Usage
+
+bruh moment
+
+** Installation
