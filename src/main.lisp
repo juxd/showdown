@@ -1,3 +1,4 @@
+(in-package :cl-user)
 (defpackage potato-srv
   (:use :cl)
   (:export #:start))
@@ -6,10 +7,14 @@
 
 (defparameter *application-root* (asdf:system-source-directory :potato-srv))
 (defparameter *templates-directory* (merge-pathnames #P"templates/" *application-root*))
-(djula:add-template-directory *templates-directory*)
 
-(defun ok-html (content)
-  `(200 (:content-type "text/html") ,content))
+(defun ok-html (content &key (headers '()))
+  (list 200 (nconc (list :content-type "text/html") headers) content))
+
+(defun style.css ()
+  (list 200
+        '(:content-type "text/css")
+        (merge-pathnames #P"style.css" *templates-directory*)))
 
 (defun bruh-html (num)
   (format nil
@@ -26,6 +31,10 @@
 (defun handle-error ()
   `(404
     (:content-type "text/plain") ("now thats a bruh")))
+
+(defun handle-make-game ()
+  (ok-html (potato-srv.game:get-table-html
+            (potato-srv.game:create-state :p1-thaler))))
 
 (defun handle-send (query)
   (let* ((per-kv (str:split #\& query))
@@ -47,6 +56,9 @@
          (case (length s)
            (0 (handle-main))
            (1 (let ((s (nth 0 s)))
-                (cond ((string= s "send") (handle-send query-string))
-                      (t (handle-error)))))
+                (alexandria:switch (s :test #'string=)
+                  ("send" (handle-send query-string))
+                  ("make-game" (handle-make-game))
+                  ("style.css" (style.css))
+                  (t (handle-error)))))
            (t (redirect-to-main))))))))

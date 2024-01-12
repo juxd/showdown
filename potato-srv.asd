@@ -5,7 +5,8 @@
   :depends-on ("alexandria" "djula" "str" "woo")
   :components ((:module "src"
                 :components
-                ((:file "main"))))
+                ((:file "main" :depends-on ("game"))
+                 (:file "game"))))
   :description ""
   :in-order-to ((test-op (test-op "potato-srv/tests"))))
 
