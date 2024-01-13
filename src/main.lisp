@@ -60,20 +60,24 @@
                  (handle-choose-thaler (query-str-alist query))
                  nil)
                 (t nil))
+            (potato-srv.game:invalid-thaler-placement (cond)
+              (message-to-client
+               (format nil
+                       "open your eyes pls: thaler@~a -- ~a"
+                       (potato-srv.game:bad-thaler-placement cond)
+                       (potato-srv.game:bad-thaler-reason cond))))
+            (potato-srv.game:invalid-move-for-phase (cond)
+              (message-to-client
+               (format nil
+                       "pls wait: phase:~a move:~a"
+                       (potato-srv.game:bad-move-phase cond)
+                       (potato-srv.game:bad-move cond))))
             (error (cond)
-              (format t "error: ~a" cond)
-              (message-to-client (format nil "error: ~a" cond))))))
+              (format nil "bruh moment: ~a" cond)))))
     (ok-html (cons (if error-message-to-client
                        error-message-to-client
                        (format nil "We made the move ~a" query))
                    (potato-srv.game:get-table-html potato-srv.game:*singleton-game*)))))
-
-(defun handle-send (query)
-  (let ((num (cdr (assoc "num" (query-str-alist query) :test #'string=))))
-    (ok-html (list (message-to-client (format nil
-                                              "You requested for a bruh ~a"
-                                              num))
-                   (bruh-html (parse-integer num))))))
 
 (defun start ()
   (woo:run
@@ -87,7 +91,6 @@
            (0 (handle-main))
            (1 (let ((s (nth 0 s)))
                 (alexandria:switch (s :test #'string=)
-                  ("send" (handle-send query-string))
                   ("make-game" (handle-make-game))
                   ("choose-thaler" (handle-move :choose-thaler query-string))
                   ("style.css" (style.css))

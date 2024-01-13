@@ -2,9 +2,15 @@
 (defpackage :potato-srv.game
   (:use :cl)
   (:export :*singleton-game*
+           :invalid-thaler-placement
+           :invalid-move-for-phase
            #:create-state
            #:echoose-thaler
-           #:get-table-html))
+           #:get-table-html
+           #:bad-thaler-placement
+           #:bad-thaler-reason
+           #:bad-move
+           #:bad-move-phase))
 
 (in-package :potato-srv.game)
 
@@ -52,7 +58,7 @@
   (:documentation "When someone tried to place a thaler at a bad place"))
 
 (define-condition invalid-move-for-phase (error)
-  ((move :initarg :placement
+  ((move :initarg :move
          :initform nil
          :reader bad-move)
    (phase :initarg :phase

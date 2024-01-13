@@ -48,13 +48,16 @@ td {
 
 #game-container {
   display: flex;
-  width: 500px;
+  width: 1000px;
 }
 
 #game-container > div {
-  flex: 1;
+  flex: 3;
 }
 
 #message-box {
-  line-height: 1.5;;
+  line-height: 1.5;
+  font-size: 14px;
+  overflow: scroll;
+  padding: 10px;
 }
