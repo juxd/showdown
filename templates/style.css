@@ -1,9 +1,12 @@
+body {
+  font-family: 'Consolas';
+}
+
 td {
   height: 25px;
   width: 25px;
   text-align: center;
   vertical-align: middle;
-  font-family: 'Consolas';
 }
 
 .empty2 {
@@ -36,4 +39,17 @@ td {
 
 .w-piece {
   background: #D5D5D5;
+}
+
+#game-container {
+  display: flex;
+  width: 500px;
+}
+
+#game-container > div {
+  flex: 1;
+}
+
+#message-box {
+  line-height: 1.5;;
 }

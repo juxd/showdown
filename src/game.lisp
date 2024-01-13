@@ -9,10 +9,11 @@
 (defstruct state
   pegs
   thaler
-  current-turn
   player-1-choice
   player-2-choice
   phase)
+
+(defvar *all-game-states* (create-state (:p1-thaler)))
 
 (defun find-color (state x y)
   (position (cons x y)
@@ -22,6 +23,32 @@
 (defun maybe-thaler (state x y)
   (cond ((equal (cons x y) (state-thaler state)) :thaler)
         (t nil)))
+
+(defun set-thaler (state x y)
+  (flet ((is-not-adjacent-to (thaler peg)
+           (destructuring-bind
+               ((t-x . t-y) . (p-x . p-y))
+               (cons thaler peg)
+               (cond ((>= (abs (- p-x t-x)) 1) nil)
+                     ((>= (abs (- p-y t-y)) 1) nil)
+                     (t                        t)))))
+    (alexandria:when-let
+        ((is-in-board        (cond ((< x 0) nil)
+                                   ((> x 7) nil)
+                                   ((< x 0) nil)
+                                   ((> x 7) nil)
+                                   (t       t)))
+         (is-not-beside-pegs (loop for peg in (state-pegs state)
+                                   always (is-not-adjacent-to (cons x y) peg))))
+      (setf (state-thaler state) (cons x y))
+      t)))
+
+(defun choose-thaler (state x y)
+  (flet ((set-thaler () (setf (state-thaler state) (cons x y))))
+    (case (state-phase state)
+      (:p1-thaler (set-thaler))
+      (:p2-thaler (set-thaler))
+      (t nil))))
 
 (defun get-table (state)
   (loop for y from 0 to 7
@@ -71,10 +98,7 @@
 
 (defun create-state (initial-phase)
   (make-state :pegs (generate-seven-coordinates)
-             :thaler nil
-             :current-turn (case initial-phase
-                             (:p1-thaler :player-1)
-                             (:p2-thaler :player-2))
-             :player-1-choice nil
-             :player-2-choice nil
-             :phase initial-phase))
+              :thaler nil
+              :player-1-choice nil
+              :player-2-choice nil
+              :phase initial-phase))

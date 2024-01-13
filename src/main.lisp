@@ -16,6 +16,11 @@
         '(:content-type "text/css")
         (merge-pathnames #P"style.css" *templates-directory*)))
 
+(defun message-to-client (message)
+  (format nil
+          "<p hx-swap-oob=\"afterbegin:#message-box\">~a</br></p>"
+          message))
+
 (defun bruh-html (num)
   (format nil
           "<button hx-get=\"/send?num=~a\" hx-swap=\"outerHTML\">bruh ~a</button>"
@@ -43,7 +48,10 @@
                                      (cons (car p) (cadr p))))
                        per-kv))
          (num (cdr (assoc "num" query-alist :test #'string=))))
-    (ok-html (list (bruh-html (parse-integer num))))))
+    (ok-html (list (message-to-client (format nil
+                                              "You requested for a bruh ~a"
+                                              num))
+                   (bruh-html (parse-integer num))))))
 
 (defun start ()
   (woo:run
