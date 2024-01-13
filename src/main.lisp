@@ -21,12 +21,6 @@
           "<p hx-swap-oob=\"afterbegin:#message-box\">~a</br></p>"
           message))
 
-(defun bruh-html (num)
-  (format nil
-          "<button hx-get=\"/send?num=~a\" hx-swap=\"outerHTML\">bruh ~a</button>"
-          (+ num 1)
-          num))
-
 (defun redirect-to-main ()
   '(301 (:location "/") ()))
 
@@ -38,8 +32,7 @@
     (:content-type "text/plain") ("now thats a bruh")))
 
 (defun handle-make-game ()
-  (ok-html (potato-srv.game:get-table-html
-            (potato-srv.game:create-state :p1-thaler))))
+  (ok-html (potato-srv.game:get-table-html (potato-srv.game:create-state))))
 
 (defun query-str-alist (query)
   (mapcar
@@ -73,10 +66,11 @@
                        (potato-srv.game:bad-move-phase cond)
                        (potato-srv.game:bad-move cond))))
             (error (cond)
-              (format nil "bruh moment: ~a" cond)))))
+              (message-to-client
+               (format nil "bruh moment: ~a" cond))))))
     (ok-html (cons (if error-message-to-client
                        error-message-to-client
-                       (format nil "We made the move ~a" query))
+                       (message-to-client (format nil "We made the move ~a" query)))
                    (potato-srv.game:get-table-html potato-srv.game:*singleton-game*)))))
 
 (defun start ()

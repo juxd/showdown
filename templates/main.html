@@ -1,22 +1,55 @@
 <!DOCTYPE HTML>
 <html>
-    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="/style.css">
-<body>
-    <h1>hey guys</h1>
-    <button hx-get="/make-game" hx-target="#game-table">get a game!</button>
-    <div id="game-container">
-        <div id="game-table"></div>
-        <div id="message-box"></div>
-    </div>
-    <div>
-        <form hx-get="/choose-thaler" hx-swap="none">
-            <label for="x">X</label>
-            <input type="text" name="x" id="x" required/>
-            <label for="y">Y</label>
-            <input type="text" name="y" id="y" required/>
-            <input type="submit"/>
-        </form>
-    </div>
-</body>
+    <head>
+        <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="/style.css">
+    </head>
+    <body>
+        <h1>hey guys</h1>
+        <button hx-get="/make-game" hx-target="#game-table">get a game!</button>
+        <div id="game-container">
+            <div id="game-table"></div>
+            <div id="message-box"></div>
+        </div>
+        <div>
+            <form hx-get="/choose-thaler" hx-swap="none" id="player-choice">
+                <label for="x">X</label>
+                <input type="text" name="x" id="x" required/>
+                <label for="y">Y</label>
+                <input type="text" name="y" id="y" required/>
+                <input type="submit"/>
+            </form>
+        </div>
+        <script>
+         function setFormXY(x, y) {
+             const form = document.getElementById("player-choice");
+
+             form.elements.x.value = x;
+             form.elements.y.value = y;
+         }
+
+         var prevSelectedTarget = null;
+
+         document.body.addEventListener("htmx:load", (event) => {
+             if (event.detail.elt.id == "game-table") {
+                 const gameTable = event.detail.elt;
+
+                 gameTable.addEventListener("click", (evt) => {
+                     const x = evt.target.attributes.x_pos.value;
+                     const y = evt.target.attributes.y_pos.value;
+
+                     setFormXY(x, y);
+
+                     if (prevSelectedTarget != null) {
+                         prevSelectedTarget.style.outlineStyle = "";
+                         prevSelectedTarget.style.outlineWidth = "";
+                     }
+                     evt.target.style.outlineStyle = "solid";
+                     evt.target.style.outlineWidth = "2px";
+                     prevSelectedTarget = evt.target;
+                 });
+             }
+         });
+        </script>
+    </body>
 </html>

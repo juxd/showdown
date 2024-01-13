@@ -31,12 +31,12 @@
            0
            7)))
 
-(defun create-state (initial-phase)
+(defun create-state ()
   (setf *singleton-game* (make-state :pegs (generate-seven-coordinates)
                                      :thaler nil
                                      :player-1-choice nil
                                      :player-2-choice nil
-                                     :phase initial-phase))
+                                     :phase :p1-thaler))
   *singleton-game*)
 
 (defun find-color (state x y)
@@ -96,9 +96,6 @@
     (:p1-thaler
      (eset-thaler state x y)
      (setf (state-phase state) :p2-choice-1))
-    (:p2-thaler
-     (eset-thaler state x y)
-     (setf (state-phase state) :p1-choice-1))
     (t (error 'invalid-move-for-phase :move :choose-thaler
                                       :phase (state-phase state)))))
 
@@ -116,18 +113,19 @@
                                 (t (maybe-thaler state x y))))))
 
 (defun piece-to-cell (piece x y)
-  (case piece
-    (:red    "<td class=\"r-piece\">R</td>")
-    (:orange "<td class=\"o-piece\">O</td>")
-    (:yellow "<td class=\"y-piece\">Y</td>")
-    (:green  "<td class=\"g-piece\">G</td>")
-    (:blue   "<td class=\"b-piece\">B</td>")
-    (:pink   "<td class=\"p-piece\">P</td>")
-    (:white  "<td class=\"w-piece\">W</td>")
-    (:thaler "<td class=\"t-piece\">T</td>")
-    (t (cond ((evenp (mod (+ x y) 2)) "<td class=\"empty1\"></td>")
-             (t "<td class=\"empty2\"></td>")))
-    ))
+  (flet ((format-x-y (fmt) (format nil fmt x y)))
+    (case piece
+      (:red    (format-x-y "<td class=\"r-piece\" x_pos=\"~a\" y_pos=\"~a\">R</td>"))
+      (:orange (format-x-y "<td class=\"o-piece\" x_pos=\"~a\" y_pos=\"~a\">O</td>"))
+      (:yellow (format-x-y "<td class=\"y-piece\" x_pos=\"~a\" y_pos=\"~a\">Y</td>"))
+      (:green  (format-x-y "<td class=\"g-piece\" x_pos=\"~a\" y_pos=\"~a\">G</td>"))
+      (:blue   (format-x-y "<td class=\"b-piece\" x_pos=\"~a\" y_pos=\"~a\">B</td>"))
+      (:pink   (format-x-y "<td class=\"p-piece\" x_pos=\"~a\" y_pos=\"~a\">P</td>"))
+      (:white  (format-x-y "<td class=\"w-piece\" x_pos=\"~a\" y_pos=\"~a\">W</td>"))
+      (:thaler (format-x-y "<td class=\"t-piece\" x_pos=\"~a\" y_pos=\"~a\">T</td>"))
+      (t (if (evenp (mod (+ x y) 2))
+             (format-x-y "<td class=\"empty1\" x_pos=\"~a\" y_pos=\"~a\"></td>")
+             (format-x-y "<td class=\"empty2\" x_pos=\"~a\" y_pos=\"~a\"></td>"))))))
 
 (defun get-table-html (state)
   (append (list "<table id=\"game-table\" hx-swap-oob=\"true\">")
@@ -140,8 +138,8 @@
           (loop for y from 0
                 for row in (get-table state)
                 collect (let* ((cells (loop for x from 0
-                                           for c in row
-                                           collect (piece-to-cell c x y)))
+                                            for c in row
+                                            collect (piece-to-cell c x y)))
                                (row (apply #'str:concat cells)))
                           (format nil "<tr><td>~a</td>~a</tr>" y row)))
           (list "</table>")))
