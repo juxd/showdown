@@ -41,6 +41,10 @@
   (ok-html (potato-srv.game:get-table-html
             (potato-srv.game:create-state :p1-thaler))))
 
+(defun handle-move (move &rest rest)
+  (case move
+    ))
+
 (defun handle-send (query)
   (let* ((per-kv (str:split #\& query))
          (query-alist (mapcar
