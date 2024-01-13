@@ -41,6 +41,11 @@ td {
   background: #D5D5D5;
 }
 
+.t-piece {
+  background: #535353;
+  color: #FFFFFF;
+}
+
 #game-container {
   display: flex;
   width: 500px;

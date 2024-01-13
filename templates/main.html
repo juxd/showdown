@@ -10,5 +10,14 @@
         <div id="game-table"></div>
         <div id="message-box"></div>
     </div>
+    <div>
+        <form hx-get="/choose-thaler" hx-swap="none">
+            <label for="x">X</label>
+            <input type="text" name="x" id="x" required/>
+            <label for="y">Y</label>
+            <input type="text" name="y" id="y" required/>
+            <input type="submit"/>
+        </form>
+    </div>
 </body>
 </html>

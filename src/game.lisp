@@ -1,7 +1,7 @@
 (in-package :cl-user)
 (defpackage :potato-srv.game
   (:use :cl)
-  (:export :*all-game-states*
+  (:export :*singleton-game*
            #:create-state
            #:echoose-thaler
            #:get-table-html))
@@ -15,6 +15,8 @@
   player-2-choice
   phase)
 
+(defvar *singleton-game* nil)
+
 (defun generate-seven-coordinates ()
   (mapcar (lambda (x)
             (multiple-value-bind (x y) (floor x 8) (cons x y)))
@@ -24,13 +26,12 @@
            7)))
 
 (defun create-state (initial-phase)
-  (make-state :pegs (generate-seven-coordinates)
-              :thaler nil
-              :player-1-choice nil
-              :player-2-choice nil
-              :phase initial-phase))
-
-(defvar *all-game-states* (create-state :p1-thaler))
+  (setf *singleton-game* (make-state :pegs (generate-seven-coordinates)
+                                     :thaler nil
+                                     :player-1-choice nil
+                                     :player-2-choice nil
+                                     :phase initial-phase))
+  *singleton-game*)
 
 (defun find-color (state x y)
   (position (cons x y)
@@ -123,12 +124,18 @@
     ))
 
 (defun get-table-html (state)
-  (append (list "<table>")
+  (append (list "<table id=\"game-table\" hx-swap-oob=\"true\">")
+          (list
+           (format nil
+                   "<tr><td></td>~a</tr>"
+                   (apply #'str:concat
+                          (loop for x from 0 to 7
+                                collect (format nil "<td>~a</td>" x)))))
           (loop for y from 0
                 for row in (get-table state)
                 collect (let* ((cells (loop for x from 0
                                            for c in row
                                            collect (piece-to-cell c x y)))
                                (row (apply #'str:concat cells)))
-                          (format nil "<tr>~a</tr>" row)))
+                          (format nil "<tr><td>~a</td>~a</tr>" y row)))
           (list "</table>")))

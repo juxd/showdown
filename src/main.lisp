@@ -41,17 +41,35 @@
   (ok-html (potato-srv.game:get-table-html
             (potato-srv.game:create-state :p1-thaler))))
 
-(defun handle-move (move &rest rest)
-  (case move
-    ))
+(defun query-str-alist (query)
+  (mapcar
+   (lambda (q) (let ((p (str:split #\= q)))
+                 (cons (car p) (cadr p))))
+   (str:split #\& query)))
+
+(defun handle-choose-thaler (query-alist)
+  (let ((x (parse-integer (cdr (assoc "x" query-alist :test #'string=))))
+        (y (parse-integer (cdr (assoc "y" query-alist :test #'string=)))))
+    (potato-srv.game:echoose-thaler potato-srv.game:*singleton-game* x y)))
+
+(defun handle-move (move query)
+  (let ((error-message-to-client
+          (handler-case
+              (case move
+                (:choose-thaler
+                 (handle-choose-thaler (query-str-alist query))
+                 nil)
+                (t nil))
+            (error (cond)
+              (format t "error: ~a" cond)
+              (message-to-client (format nil "error: ~a" cond))))))
+    (ok-html (cons (if error-message-to-client
+                       error-message-to-client
+                       (format nil "We made the move ~a" query))
+                   (potato-srv.game:get-table-html potato-srv.game:*singleton-game*)))))
 
 (defun handle-send (query)
-  (let* ((per-kv (str:split #\& query))
-         (query-alist (mapcar
-                       (lambda (q) (let ((p (str:split #\= q)))
-                                     (cons (car p) (cadr p))))
-                       per-kv))
-         (num (cdr (assoc "num" query-alist :test #'string=))))
+  (let ((num (cdr (assoc "num" (query-str-alist query) :test #'string=))))
     (ok-html (list (message-to-client (format nil
                                               "You requested for a bruh ~a"
                                               num))
@@ -71,6 +89,7 @@
                 (alexandria:switch (s :test #'string=)
                   ("send" (handle-send query-string))
                   ("make-game" (handle-make-game))
+                  ("choose-thaler" (handle-move :choose-thaler query-string))
                   ("style.css" (style.css))
                   (t (handle-error)))))
            (t (redirect-to-main))))))))
