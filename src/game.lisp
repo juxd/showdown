@@ -5,6 +5,7 @@
            :invalid-thaler-placement
            :invalid-move-for-phase
            #:create-state
+           #:state-phase
            #:echoose-thaler
            #:get-table-html
            #:bad-thaler-placement
@@ -13,6 +14,24 @@
            #:bad-move-phase))
 
 (in-package :potato-srv.game)
+
+(define-condition invalid-thaler-placement (error)
+  ((placement :initarg :placement
+              :initform nil
+              :reader bad-thaler-placement)
+   (reason :initarg :reason
+           :initform nil
+           :reader bad-thaler-reason))
+  (:documentation "When someone tried to place a thaler at a bad place"))
+
+(define-condition invalid-move-for-phase (error)
+  ((move :initarg :move
+         :initform nil
+         :reader bad-move)
+   (phase :initarg :phase
+          :initform nil
+          :reader bad-move-phase))
+  (:documentation "When someone tried to do something at a bad time"))
 
 (defstruct state
   pegs
@@ -44,27 +63,21 @@
             (state-pegs state)
             :test #'equal))
 
+(defun echoose-color (state player color)
+  (alexandria:switch ((cons (state-phase state) player)
+                      :test #'equal)
+    ('(p1-choice . p1-choice)
+      (setf (state-player-1-choice state) color)
+      (setf (state-phase state) :player-2-move))
+    ('(p2-choice . p2-choice)
+      (setf (state-player-2-choice state) colot)
+      (setf (state-phase state) :p1-choice))
+    (t (error 'invalid-move-for-phase :move player
+                                      :phase (state-phase state)))))
+
 (defun maybe-thaler (state x y)
   (cond ((equal (cons x y) (state-thaler state)) :thaler)
         (t nil)))
-
-(define-condition invalid-thaler-placement (error)
-  ((placement :initarg :placement
-              :initform nil
-              :reader bad-thaler-placement)
-   (reason :initarg :reason
-           :initform nil
-           :reader bad-thaler-reason))
-  (:documentation "When someone tried to place a thaler at a bad place"))
-
-(define-condition invalid-move-for-phase (error)
-  ((move :initarg :move
-         :initform nil
-         :reader bad-move)
-   (phase :initarg :phase
-          :initform nil
-          :reader bad-move-phase))
-  (:documentation "When someone tried to do something at a bad time"))
 
 (defun eset-thaler (state x y)
   (labels ((message-beside-peg (peg) (format nil "beside a peg: ~a" peg))
@@ -95,7 +108,7 @@
   (case (state-phase state)
     (:p1-thaler
      (eset-thaler state x y)
-     (setf (state-phase state) :p2-choice-1))
+     (setf (state-phase state) :p2-choice))
     (t (error 'invalid-move-for-phase :move :choose-thaler
                                       :phase (state-phase state)))))
 
@@ -113,33 +126,40 @@
                                 (t (maybe-thaler state x y))))))
 
 (defun piece-to-cell (piece x y)
-  (flet ((format-x-y (fmt) (format nil fmt x y)))
+  (flet ((format-td (css-class content)
+           (format nil
+                   "<td class=\"~a\" x_pos=\"~a\" y_pos=\"~a\">~a</td>~%"
+                   css-class x y content)))
     (case piece
-      (:red    (format-x-y "<td class=\"r-piece\" x_pos=\"~a\" y_pos=\"~a\">R</td>"))
-      (:orange (format-x-y "<td class=\"o-piece\" x_pos=\"~a\" y_pos=\"~a\">O</td>"))
-      (:yellow (format-x-y "<td class=\"y-piece\" x_pos=\"~a\" y_pos=\"~a\">Y</td>"))
-      (:green  (format-x-y "<td class=\"g-piece\" x_pos=\"~a\" y_pos=\"~a\">G</td>"))
-      (:blue   (format-x-y "<td class=\"b-piece\" x_pos=\"~a\" y_pos=\"~a\">B</td>"))
-      (:pink   (format-x-y "<td class=\"p-piece\" x_pos=\"~a\" y_pos=\"~a\">P</td>"))
-      (:white  (format-x-y "<td class=\"w-piece\" x_pos=\"~a\" y_pos=\"~a\">W</td>"))
-      (:thaler (format-x-y "<td class=\"t-piece\" x_pos=\"~a\" y_pos=\"~a\">T</td>"))
+      (:red    (format-td "r-piece" "R"))
+      (:orange (format-td "o-piece" "O"))
+      (:yellow (format-td "y-piece" "Y"))
+      (:green  (format-td "g-piece" "G"))
+      (:blue   (format-td "b-piece" "B"))
+      (:pink   (format-td "p-piece" "P"))
+      (:white  (format-td "w-piece" "W"))
+      (:thaler (format-td "t-piece" "T"))
       (t (if (evenp (mod (+ x y) 2))
-             (format-x-y "<td class=\"empty1\" x_pos=\"~a\" y_pos=\"~a\"></td>")
-             (format-x-y "<td class=\"empty2\" x_pos=\"~a\" y_pos=\"~a\"></td>"))))))
+             (format nil
+                     "<td class=\"empty1\" x_pos=\"~a\" y_pos=\"~a\"></td>~%"
+                     x y)
+             (format nil
+                     "<td class=\"empty2\" x_pos=\"~a\" y_pos=\"~a\"></td>~%"
+                     x y))))))
 
 (defun get-table-html (state)
   (append (list "<table id=\"game-table\" hx-swap-oob=\"true\">")
           (list
            (format nil
-                   "<tr><td></td>~a</tr>"
+                   "<tr><td></td>~a</tr>~%"
                    (apply #'str:concat
                           (loop for x from 0 to 7
-                                collect (format nil "<td>~a</td>" x)))))
+                                collect (format nil "<td>~%~a</td>~%" x)))))
           (loop for y from 0
                 for row in (get-table state)
                 collect (let* ((cells (loop for x from 0
                                             for c in row
                                             collect (piece-to-cell c x y)))
                                (row (apply #'str:concat cells)))
-                          (format nil "<tr><td>~a</td>~a</tr>" y row)))
+                          (format nil "<tr><td>~%~a</td>~%~a</tr>~%" y row)))
           (list "</table>")))

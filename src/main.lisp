@@ -21,9 +21,16 @@
         '(:content-type "image/png")
         (merge-pathnames #P"Showdown_Banner.png" *templates-directory*)))
 
+(defun game-status (state)
+  (format nil
+          "<div id=\"game-phase\" hx-swap-oob=\"true\">
+<h3>Current Phase: ~a</h3>
+</div>"
+          (potato-srv.game:state-phase state)))
+
 (defun message-to-client (message)
   (format nil
-          "<p hx-swap-oob=\"afterbegin:#message-box\">~a</br></p>"
+          "<p id=\"message-box\" hx-swap-oob=\"afterbegin\">~a</br></p>"
           message))
 
 (defun redirect-to-main ()
@@ -37,7 +44,9 @@
     (:content-type "text/plain") ("now thats a bruh")))
 
 (defun handle-make-game ()
-  (ok-html (potato-srv.game:get-table-html (potato-srv.game:create-state))))
+  (potato-srv.game:create-state)
+  (ok-html (cons (game-status potato-srv.game:*singleton-game*)
+                 (potato-srv.game:get-table-html potato-srv.game:*singleton-game*))))
 
 (defun query-str-alist (query)
   (mapcar
@@ -73,10 +82,11 @@
             (error (cond)
               (message-to-client
                (format nil "bruh moment: ~a" cond))))))
-    (ok-html (cons (if error-message-to-client
-                       error-message-to-client
-                       (message-to-client (format nil "We made the move ~a" query)))
-                   (potato-srv.game:get-table-html potato-srv.game:*singleton-game*)))))
+    (ok-html (nconc (list (game-status potato-srv.game:*singleton-game*)
+                          (if error-message-to-client
+                              error-message-to-client
+                              (message-to-client (format nil "We made the move ~a" query))))
+                    (potato-srv.game:get-table-html potato-srv.game:*singleton-game*)))))
 
 (defun start ()
   (woo:run
