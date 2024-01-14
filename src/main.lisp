@@ -11,6 +11,12 @@
 (defun ok-html (content &key (headers '()))
   (list 200 (nconc (list :content-type "text/html") headers) content))
 
+(defun query-str-alist (query)
+  (mapcar
+   (lambda (q) (let ((p (str:split #\= q)))
+                 (cons (car p) (cadr p))))
+   (str:split #\& query)))
+
 (defun style.css ()
   (list 200
         '(:content-type "text/css")
@@ -43,16 +49,42 @@
   `(404
     (:content-type "text/plain") ("now thats a bruh")))
 
+(defun make-poller (seq)
+  (format nil
+          "<div
+id=\"game-poller\"
+style=\"{ display: hidden; }\"
+hx-get=\"/get-game?seq=~a\"
+hx-swap=\"outerHTML\"
+hx-trigger=\"load delay:1s\">
+</div>"
+          seq))
+
+(defun get-game (query)
+  (handler-case
+      (let ((req-seq (parse-integer (cdr (assoc "seq"
+                                                (query-str-alist query)
+                                                :test #'string=)))))
+        (cond
+          ((and potato-srv.game:*singleton-game*
+                (= (potato-srv.game:state-phase-seq
+                    potato-srv.game:*singleton-game*)
+                   req-seq))
+           (ok-html (list (make-poller req-seq))))
+          (potato-srv.game:*singleton-game*
+           (ok-html `(,(make-poller (potato-srv.game:state-phase-seq
+                                     potato-srv.game:*singleton-game*))
+                      ,(game-status potato-srv.game:*singleton-game*)
+                      . ,(potato-srv.game:get-table-html
+                          potato-srv.game:*singleton-game*))))
+          (t (ok-html (list (make-poller req-seq))))))
+    (error (cond)
+      (ok-html (list (make-poller req-seq)
+                     (message-to-client (format nil "bruh moment: ~a" cond)))))))
+
 (defun handle-make-game ()
   (potato-srv.game:create-state)
-  (ok-html (cons (game-status potato-srv.game:*singleton-game*)
-                 (potato-srv.game:get-table-html potato-srv.game:*singleton-game*))))
-
-(defun query-str-alist (query)
-  (mapcar
-   (lambda (q) (let ((p (str:split #\= q)))
-                 (cons (car p) (cadr p))))
-   (str:split #\& query)))
+  (ok-html nil))
 
 (defun handle-choose-thaler (query-alist)
   (let ((x (parse-integer (cdr (assoc "x" query-alist :test #'string=))))
@@ -82,11 +114,9 @@
             (error (cond)
               (message-to-client
                (format nil "bruh moment: ~a" cond))))))
-    (ok-html (nconc (list (game-status potato-srv.game:*singleton-game*)
-                          (if error-message-to-client
-                              error-message-to-client
-                              (message-to-client (format nil "We made the move ~a" query))))
-                    (potato-srv.game:get-table-html potato-srv.game:*singleton-game*)))))
+    (ok-html (list (if error-message-to-client
+                       error-message-to-client
+                       (message-to-client (format nil "We made the move ~a" query)))))))
 
 (defun start ()
   (woo:run
@@ -95,11 +125,12 @@
          (&key query-string path-info &allow-other-keys)
          env
        (let ((s (str:split #\/ path-info :omit-nulls t)))
-         (format t "we got this: ~a ~a ~a~%" query-string path-info (length s))
+         (format t "req: ~a ~a ~a~%" query-string path-info (length s))
          (case (length s)
            (0 (handle-main))
            (1 (let ((s (nth 0 s)))
                 (alexandria:switch (s :test #'string=)
+                  ("get-game" (get-game query-string))
                   ("make-game" (handle-make-game))
                   ("choose-thaler" (handle-move :choose-thaler query-string))
                   ("style.css" (style.css))

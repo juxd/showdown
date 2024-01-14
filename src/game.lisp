@@ -6,6 +6,7 @@
            :invalid-move-for-phase
            #:create-state
            #:state-phase
+           #:state-phase-seq
            #:echoose-thaler
            #:get-table-html
            #:bad-thaler-placement
@@ -38,6 +39,7 @@
   thaler
   player-1-choice
   player-2-choice
+  phase-seq
   phase)
 
 (defvar *singleton-game* nil)
@@ -55,8 +57,12 @@
                                      :thaler nil
                                      :player-1-choice nil
                                      :player-2-choice nil
-                                     :phase :p1-thaler))
-  *singleton-game*)
+                                     :phase :p1-thaler
+                                     :phase-seq 0)))
+
+(defun change-phase (state phase)
+  (setf (state-phase state) phase)
+  (incf (state-phase-seq state)))
 
 (defun find-color (state x y)
   (position (cons x y)
@@ -68,10 +74,10 @@
                       :test #'equal)
     ('(p1-choice . p1-choice)
       (setf (state-player-1-choice state) color)
-      (setf (state-phase state) :player-2-move))
+      (change-phase state :p2-move))
     ('(p2-choice . p2-choice)
-      (setf (state-player-2-choice state) colot)
-      (setf (state-phase state) :p1-choice))
+      (setf (state-player-2-choice state) color)
+      (change-phase state :p1-choice))
     (t (error 'invalid-move-for-phase :move player
                                       :phase (state-phase state)))))
 
@@ -108,7 +114,7 @@
   (case (state-phase state)
     (:p1-thaler
      (eset-thaler state x y)
-     (setf (state-phase state) :p2-choice))
+     (change-phase state :p2-choice))
     (t (error 'invalid-move-for-phase :move :choose-thaler
                                       :phase (state-phase state)))))
 
@@ -148,13 +154,14 @@
                      x y))))))
 
 (defun get-table-html (state)
-  (append (list "<table id=\"game-table\" hx-swap-oob=\"true\">")
+  (append '("<div id=\"game-table\" hx-swap-oob=\"true\">")
+          '("<table id=\"game-table-contents\">")
           (list
            (format nil
                    "<tr><td></td>~a</tr>~%"
                    (apply #'str:concat
                           (loop for x from 0 to 7
-                                collect (format nil "<td>~%~a</td>~%" x)))))
+                                collect (format nil "<td>~a</td>~%" x)))))
           (loop for y from 0
                 for row in (get-table state)
                 collect (let* ((cells (loop for x from 0
@@ -162,4 +169,5 @@
                                             collect (piece-to-cell c x y)))
                                (row (apply #'str:concat cells)))
                           (format nil "<tr><td>~%~a</td>~%~a</tr>~%" y row)))
-          (list "</table>")))
+          '("</table>")
+          '("</div>")))
