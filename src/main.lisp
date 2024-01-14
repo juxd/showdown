@@ -16,6 +16,11 @@
         '(:content-type "text/css")
         (merge-pathnames #P"style.css" *templates-directory*)))
 
+(defun Showdown_Banner.png ()
+  (list 200
+        '(:content-type "image/png")
+        (merge-pathnames #P"Showdown_Banner.png" *templates-directory*)))
+
 (defun message-to-client (message)
   (format nil
           "<p hx-swap-oob=\"afterbegin:#message-box\">~a</br></p>"
@@ -88,5 +93,6 @@
                   ("make-game" (handle-make-game))
                   ("choose-thaler" (handle-move :choose-thaler query-string))
                   ("style.css" (style.css))
+                  ("Showdown_Banner.png" (Showdown_Banner.png))
                   (t (handle-error)))))
            (t (redirect-to-main))))))))

@@ -1,5 +1,5 @@
 body {
-  font-family: 'Consolas';
+  font-family: 'Helvetica';
 }
 
 td {
@@ -7,6 +7,10 @@ td {
   width: 25px;
   text-align: center;
   vertical-align: middle;
+}
+
+.empty1 {
+  background: #FFFFFF;
 }
 
 .empty2 {
@@ -30,7 +34,7 @@ td {
 }
 
 .b-piece {
-  background: #6688C3;
+  background: #6e8ec7;
 }
 
 .p-piece {
@@ -49,6 +53,7 @@ td {
 #game-container {
   display: flex;
   width: 1000px;
+  padding: 30px;
 }
 
 #game-container > div {
@@ -59,5 +64,6 @@ td {
   line-height: 1.5;
   font-size: 14px;
   overflow: scroll;
+  margin-left: 80px;
   padding: 10px;
 }
