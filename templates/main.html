@@ -30,6 +30,7 @@
          function setFormXY(x, y) {
              const form = document.getElementById("player-choice");
 
+             if (!form) return;
              form.elements.x.value = x;
              form.elements.y.value = y;
          }
@@ -54,6 +55,7 @@
                              e.message,
                          );
                      }
+
                      if (!x || !y) return;
                      setFormXY(x, y);
 

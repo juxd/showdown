@@ -8,6 +8,7 @@
            #:state-phase
            #:state-phase-seq
            #:echoose-thaler
+           #:echoose-color
            #:get-table-html
            #:generate-move-form
            #:bad-thaler-placement
@@ -70,8 +71,8 @@
                                 (5 "pink")
                                 (6 "white"))))
                (format nil
-                       "<label for=\"~a\">~a</label>
-<input type=\"radio\" id=\"~a-radio\" name=\"color\" value=\"~a\" checked />~%"
+                       "<input type=\"radio\" id=\"~a-radio\" name=\"color\" value=\"~a\" checked />
+<label for=\"~a\">~a</label>~%"
                        color-str
                        color-str
                        color-str
@@ -83,7 +84,7 @@
                        "<form hx-get=\"/choose-color\">
 <input type=\"hidden\" name=\"player\" value=\"~a\">
 ~a
-<intpu type=\"submit\">Choose</input>
+<input type=\"submit\" name=\"Choose Color\">
 </form>"
                        player
                        choices))))
@@ -93,7 +94,7 @@
 <input type=\"text\" name=\"x\" id=\"x\" required/>
 <label for=\"y\">Y</label>
 <input type=\"text\" name=\"y\" id=\"y\" required/>
-<input type=\"submit\">make move</input>
+<input type=\"submit\" name=\"Place Thaler\"/>
 </form>")
       (:p1-choice (make-color-choice-form "1"))
       (:p2-choice (make-color-choice-form "2"))
@@ -111,10 +112,10 @@
 (defun echoose-color (state player color)
   (alexandria:switch ((cons (state-phase state) player)
                       :test #'equal)
-    ('(p1-choice . 1)
+    ('(:p1-choice . 1)
       (setf (state-player-1-choice state) color)
       (change-phase state :p2-move))
-    ('(p2-choice . 2)
+    ('(:p2-choice . 2)
       (setf (state-player-2-choice state) color)
       (change-phase state :p1-choice))
     (t (error 'invalid-move-for-phase
