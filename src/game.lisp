@@ -9,6 +9,7 @@
            #:state-phase-seq
            #:echoose-thaler
            #:get-table-html
+           #:generate-move-form
            #:bad-thaler-placement
            #:bad-thaler-reason
            #:bad-move
@@ -45,12 +46,10 @@
 (defvar *singleton-game* nil)
 
 (defun generate-seven-coordinates ()
-  (mapcar (lambda (x)
-            (multiple-value-bind (x y) (floor x 8) (cons x y)))
-          (subseq
-           (alexandria:shuffle (loop for i from 0 to 63 collect i))
-           0
-           7)))
+  (mapcar (lambda (x) (multiple-value-bind (x y) (floor x 8) (cons x y)))
+          (subseq (alexandria:shuffle (loop for i from 0 to 63 collect i))
+                  0
+                  7)))
 
 (defun create-state ()
   (setf *singleton-game* (make-state :pegs (generate-seven-coordinates)
@@ -59,6 +58,46 @@
                                      :player-2-choice nil
                                      :phase :p1-thaler
                                      :phase-seq 0)))
+
+(defun generate-move-form (state)
+  (labels ((make-choice (color)
+             (let ((color-str (case color
+                                (0 "red")
+                                (1 "orange")
+                                (2 "yellow")
+                                (3 "green")
+                                (4 "blue")
+                                (5 "pink")
+                                (6 "white"))))
+               (format nil
+                       "<label for=\"~a\">~a</label>
+<input type=\"radio\" id=\"~a-radio\" name=\"color\" value=\"~a\" checked />~%"
+                       color-str
+                       color-str
+                       color-str
+                       color-str)))
+           (make-color-choice-form (player)
+             (let ((choices (apply #'str:concat (loop for i from 0 to 6
+                                                      collect (make-choice i)))))
+               (format nil
+                       "<form hx-get=\"/choose-color\">
+<input type=\"hidden\" name=\"player\" value=\"~a\">
+~a
+<intpu type=\"submit\">Choose</input>
+</form>"
+                       player
+                       choices))))
+    (case (state-phase state)
+      (:p1-thaler "<form hx-get=\"/choose-thaler\" hx-swap=\"none\" id=\"player-choice\">
+<label for=\"x\">X</label>
+<input type=\"text\" name=\"x\" id=\"x\" required/>
+<label for=\"y\">Y</label>
+<input type=\"text\" name=\"y\" id=\"y\" required/>
+<input type=\"submit\">make move</input>
+</form>")
+      (:p1-choice (make-color-choice-form "1"))
+      (:p2-choice (make-color-choice-form "2"))
+      (t "<div>no move to be made my guy</div>"))))
 
 (defun change-phase (state phase)
   (setf (state-phase state) phase)
@@ -72,14 +111,15 @@
 (defun echoose-color (state player color)
   (alexandria:switch ((cons (state-phase state) player)
                       :test #'equal)
-    ('(p1-choice . p1-choice)
+    ('(p1-choice . 1)
       (setf (state-player-1-choice state) color)
       (change-phase state :p2-move))
-    ('(p2-choice . p2-choice)
+    ('(p2-choice . 2)
       (setf (state-player-2-choice state) color)
       (change-phase state :p1-choice))
-    (t (error 'invalid-move-for-phase :move player
-                                      :phase (state-phase state)))))
+    (t (error 'invalid-move-for-phase
+              :move player
+              :phase (state-phase state)))))
 
 (defun maybe-thaler (state x y)
   (cond ((equal (cons x y) (state-thaler state)) :thaler)
@@ -89,8 +129,8 @@
   (labels ((message-beside-peg (peg) (format nil "beside a peg: ~a" peg))
            (error-invalid-placement (thaler reason)
              (error 'invalid-thaler-placement
-                     :placement thaler
-                     :reason reason))
+                    :placement thaler
+                    :reason reason))
            (is-not-adjacent-to (thaler peg)
              (destructuring-bind
                  ((t-x . t-y) . (p-x . p-y))
@@ -99,13 +139,11 @@
                         (<= (abs (- p-y t-y)) 1))
                    (error-invalid-placement thaler
                                             (message-beside-peg peg))))))
-    (let* ((message-out-of-board "out of board")
-           (thaler (cons x y)))
-      (cond ((< x 0) (error-invalid-placement thaler message-out-of-board))
-            ((> x 7) (error-invalid-placement thaler message-out-of-board))
-            ((< y 0) (error-invalid-placement thaler message-out-of-board))
-            ((> y 7) (error-invalid-placement thaler message-out-of-board))
-            (t       nil)))
+    (cond ((< x 0) (error-invalid-placement (cons x y) "out of board"))
+          ((> x 7) (error-invalid-placement (cons x y) "out of board"))
+          ((< y 0) (error-invalid-placement (cons x y) "out of board"))
+          ((> y 7) (error-invalid-placement (cons x y) "out of board"))
+          (t       nil))
     (loop for peg in (state-pegs state)
           do (is-not-adjacent-to (cons x y) peg))
     (setf (state-thaler state) (cons x y))))
@@ -115,8 +153,9 @@
     (:p1-thaler
      (eset-thaler state x y)
      (change-phase state :p2-choice))
-    (t (error 'invalid-move-for-phase :move :choose-thaler
-                                      :phase (state-phase state)))))
+    (t (error 'invalid-move-for-phase
+              :move :choose-thaler
+              :phase (state-phase state)))))
 
 (defun get-table (state)
   (loop for y from 0 to 7

@@ -66,20 +66,25 @@ hx-trigger=\"load delay:1s\">
                                                 (query-str-alist query)
                                                 :test #'string=)))))
         (cond
-          ((and potato-srv.game:*singleton-game*
-                (= (potato-srv.game:state-phase-seq
-                    potato-srv.game:*singleton-game*)
-                   req-seq))
+          ((not potato-srv.game:*singleton-game*)
            (ok-html (list (make-poller req-seq))))
-          (potato-srv.game:*singleton-game*
-           (ok-html `(,(make-poller (potato-srv.game:state-phase-seq
-                                     potato-srv.game:*singleton-game*))
-                      ,(game-status potato-srv.game:*singleton-game*)
-                      . ,(potato-srv.game:get-table-html
-                          potato-srv.game:*singleton-game*))))
-          (t (ok-html (list (make-poller req-seq))))))
+          ((= (potato-srv.game:state-phase-seq
+               potato-srv.game:*singleton-game*)
+              req-seq)
+           (ok-html (list (make-poller req-seq))))
+          (t (ok-html `(,(make-poller (potato-srv.game:state-phase-seq
+                                       potato-srv.game:*singleton-game*))
+                        ,(game-status potato-srv.game:*singleton-game*)
+                        ,(str:concat
+                          "<div id=\"player-move-form\" hx-swap-oob=\"true\">"
+                          (potato-srv.game:generate-move-form
+                           potato-srv.game:*singleton-game*)
+                          "</div>")
+                        . ,(potato-srv.game:get-table-html
+                            potato-srv.game:*singleton-game*))))))
     (error (cond)
-      (ok-html (list (make-poller req-seq)
+      (ok-html (list (make-poller -1)
+                     (game-status potato-srv.game:*singleton-game*)
                      (message-to-client (format nil "bruh moment: ~a" cond)))))))
 
 (defun handle-make-game ()

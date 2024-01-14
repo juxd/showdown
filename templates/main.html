@@ -24,13 +24,7 @@
         </div>
         <div>
             <div id="game-phase"></div>
-            <form hx-get="/choose-thaler" hx-swap="none" id="player-choice">
-                <label for="x">X</label>
-                <input type="text" name="x" id="x" required/>
-                <label for="y">Y</label>
-                <input type="text" name="y" id="y" required/>
-                <input type="submit"/>
-            </form>
+            <div id="player-move-form"></div>
         </div>
         <script>
          function setFormXY(x, y) {
