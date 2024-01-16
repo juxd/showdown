@@ -2,7 +2,7 @@
   :version "0.0.1"
   :author ""
   :license ""
-  :depends-on ("alexandria" "djula" "str" "woo")
+  :depends-on ("alexandria" "str" "woo")
   :components ((:module "src"
                 :components
                 ((:file "main" :depends-on ("game"))

@@ -61,40 +61,39 @@
                                      :phase-seq 0)))
 
 (defun generate-move-form (state)
-  (labels ((make-choice (color)
-             (let ((color-str (case color
-                                (0 "red")
-                                (1 "orange")
-                                (2 "yellow")
-                                (3 "green")
-                                (4 "blue")
-                                (5 "pink")
-                                (6 "white"))))
-               (format nil
-                       "<input type=\"radio\" id=\"~a-radio\" name=\"color\" value=\"~a\" checked />
-<label for=\"~a\">~a</label>~%"
-                       color-str
-                       color-str
-                       color-str
-                       color-str)))
-           (make-color-choice-form (player)
-             (let ((choices (apply #'str:concat (loop for i from 0 to 6
-                                                      collect (make-choice i)))))
-               (format nil
-                       "<form hx-get=\"/choose-color\">
+  (flet ((make-color-choice-form (player)
+           (let* ((color-inputs
+                    (loop for color in '("red"
+                                         "orange"
+                                         "yellow"
+                                         "green"
+                                         "blue"
+                                         "pink"
+                                         "white")
+                          collect (format nil
+                                          "
+<input type=\"radio\" id=\"~a-radio\" name=\"color\" value=\"~a\" checked />
+<label for=\"~a\">~a</label>"
+                                          color
+                                          color
+                                          color
+                                          color)))
+                  (choices (apply #'str:concat color-inputs)))
+             (format nil
+                     "<form hx-get=\"/choose-color\">
 <input type=\"hidden\" name=\"player\" value=\"~a\">
 ~a
-<input type=\"submit\" name=\"Choose Color\">
+<input type=\"submit\" value=\"Choose Color\">
 </form>"
-                       player
-                       choices))))
+                     player
+                     choices))))
     (case (state-phase state)
       (:p1-thaler "<form hx-get=\"/choose-thaler\" hx-swap=\"none\" id=\"player-choice\">
 <label for=\"x\">X</label>
 <input type=\"text\" name=\"x\" id=\"x\" required/>
 <label for=\"y\">Y</label>
 <input type=\"text\" name=\"y\" id=\"y\" required/>
-<input type=\"submit\" name=\"Place Thaler\"/>
+<input type=\"submit\" value=\"Place Thaler\"/>
 </form>")
       (:p1-choice (make-color-choice-form "1"))
       (:p2-choice (make-color-choice-form "2"))

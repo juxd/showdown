@@ -133,14 +133,13 @@ hx-trigger=\"load delay:1s\">
                                 "(only you): handled move ~a"
                                 query-alist)))))))
 
-(defun start ()
+(defun start (&key (port 80))
   (woo:run
    (lambda (env)
      (destructuring-bind
          (&key query-string path-info &allow-other-keys)
          env
        (let ((s (str:split #\/ path-info :omit-nulls t)))
-         (format t "req: ~a ~a ~a~%" query-string path-info (length s))
          (case (length s)
            (0 (handle-main))
            (1 (let ((s (nth 0 s)))
@@ -151,5 +150,7 @@ hx-trigger=\"load delay:1s\">
                   ("choose-color" (handle-move :choose-color query-string))
                   ("style.css" (style.css))
                   ("Showdown_Banner.png" (Showdown_Banner.png))
-                  (t (handle-error)))))
-           (t (redirect-to-main))))))))
+                  (t (format t "req: ~a ~a ~a~%" query-string path-info (length s))
+                     (handle-error)))))
+           (t (redirect-to-main))))))
+   :port port))
