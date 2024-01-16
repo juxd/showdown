@@ -4,19 +4,21 @@
         <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
         <link rel="stylesheet" href="/style.css">
     </head>
-    <body style = "background-color:#FFF6C8">
-        <img src="/Showdown_Banner.png" alt="Showdown Banner">
-        <h1>Game Rules</h1>
-        <p style="font-size: 13px">
-            1. Start by clicking 'Get a Game!' to generate a board with 7 counters randomly placed.<br>
-            2. Player 1 strategically places a Thaler on the board, ensuring it is not adjacent to any counter.<br>
-            3. Both players then secretly choose a color.<br>
-            4. The player who didn't place the Thaler goes first. They have the option to move any counter one space in any direction (orthogonally or diagonally) or to jump over an adjacent counter.<br>
-            5. The game unfolds as players take turns making strategic moves.<br>
-            6. A player achieves victory when their chosen counter lands on the Thaler. However, if the opposing player has also selected the same counter, victory goes to the opponent.<br>
-            7. At any point during the game, a player can make a strategic guess at the other player's chosen color. A correct guess results in winning the round, while an incorrect guess awards the round to the opposing player.<br>
-        </p>
-        <button hx-get="/make-game" hx-swap="none">make a game!</button>
+    <body><div class="center">
+        <body style = "background-color:#FFF6C8">
+        <img src="/Showdown Banner.png" alt="Showdown Banner">
+        <h1><center>A Simple Deception Board Game</center></h1>
+        <h2>Game Rules</h2>
+            <p style="font-size: 13px">
+                1. Start by clicking 'Get a Game!' to generate a board with 7 counters randomly placed.<br>
+                2. Player 1 strategically places a Thaler on the board, ensuring it is not adjacent to any counter.<br>
+                3. Both players then secretly choose a color.<br>
+                4. The player who didn't place the Thaler goes first. They have the option to move any counter one space in orthogonally or diagonally, or to jump over an adjacent counter, to get closer to the Thaler.<br>
+                5. The game unfolds as players take turns making strategic moves.<br>
+                6. A player achieves victory when their chosen counter lands on the Thaler. However, if the opposing player has also selected the same counter, victory goes to the opponent.<br>
+                7. At any point during the game, a player can make a strategic guess at the other player's chosen color. A correct guess results in winning the round, while an incorrect guess awards the round to the opposing player.<br>
+             </p>
+        <button hx-get="/make-game" hx-target="#game-table" class="button-83" role="button">Get a Game!</button>
         <div id="game-poller" style="{ display: hidden; }" hx-get="/get-game?seq=-1" hx-trigger="load delay:1s" hx-swap="outerHTML"></div>
         <div id="game-container">
             <div id="game-table" ></div>
@@ -70,5 +72,8 @@
              }
          });
         </script>
+         <br><br><br><center>Made with ❤ by J & H</center>
+    
+        </div>
     </body>
 </html>
