@@ -56,7 +56,11 @@ td {
   padding: 30px;
 }
 
-#game-container > div {
+#game-container > #game-table {
+  flex: 1;
+}
+
+#game-container > #message-box {
   flex: 3;
 }
 
