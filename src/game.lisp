@@ -60,6 +60,42 @@
                                      :phase :p1-thaler
                                      :phase-seq 0)))
 
+(defvar *move-dirs* '((-1 . -1) ( 0 . -1) ( 1 . -1)
+                      (-1 .  0)           ( 1 .  0)
+                      (-1 .  1) ( 0 .  1) ( 1 .  1)))
+
+(defun find-color (state x y)
+  (position (cons x y)
+            (state-pegs state)
+            :test #'equal))
+
+(defun thaler-dist (state x y)
+  (destructuring-bind (t-x . t-y) (state-thaler state)
+    (let ((x (abs (- t-x x)))
+          (y (abs (- t-y y))))
+      (+ (min x y) (abs (- x y))))))
+
+(defun dir-is-valid-1 (state peg-pos dir)
+  (destructuring-bind ((p-x . p-y) . (d-x . d-y)) (cons peg-pos dir)
+    (let ((x (+ p-x d-x))
+          (y (+ p-y d-y)))
+      (and (<= 0 x 7)
+           (<= 0 y 7)
+           (not (find-color state x y))
+           (<= (thaler-dist state x y) (thaler-dist state p-x p-y))))))
+
+(defun dir-is-valid-2 (state peg-pos dir)
+  (destructuring-bind ((p-x . p-y) . (d-x . d-y)) (cons peg-pos dir)
+    (let* ((x1 (+ p-x d-x))
+           (y1 (+ p-y d-y))
+           (x  (+ x1 d-y))
+           (y  (+ y1 d-y)))
+      (and (<= 0 x 7)
+           (<= 0 y 7)
+           (find-color state x1 y1)
+           (not (find-color state x y))
+           (<= (thaler-dist state x y) (thaler-dist state p-x p-y))))))
+
 (defun generate-move-form (state)
   (flet ((make-color-choice-form (player)
            (let* ((color-inputs
@@ -102,11 +138,6 @@
 (defun change-phase (state phase)
   (setf (state-phase state) phase)
   (incf (state-phase-seq state)))
-
-(defun find-color (state x y)
-  (position (cons x y)
-            (state-pegs state)
-            :test #'equal))
 
 (defun echoose-color (state player color)
   (alexandria:switch ((cons (state-phase state) player)
