@@ -39,24 +39,14 @@
 
          var prevSelectedTarget = null;
 
-         document.body.addEventListener("htmx:load", (event) => {
-             if (event.detail.elt.id == "game-table") {
-                 console.log("adding handler to table");
-                 const gameTable = event.detail.elt;
-
-                 gameTable.addEventListener("click", (evt) => {
+         htmx.onLoad(function(elt){
+             if (elt.id == "game-table") {
+                 elt.addEventListener("click", (evt) => {
                      let x = null;
                      let y = null;
 
-                     try {
-                         x = evt.target.attributes.x_pos.value;
-                         y = evt.target.attributes.y_pos.value;
-                     } catch (e) {
-                         console.debug(
-                             "probably not clicking on anything useful",
-                             e.message,
-                         );
-                     }
+                     x = evt.target?.attributes?.x_pos?.value;
+                     y = evt.target?.attributes?.y_pos?.value;
 
                      if (!x || !y) return;
                      setFormXY(x, y);

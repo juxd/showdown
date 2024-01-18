@@ -83,11 +83,11 @@ h2 {
 }
 
 #game-container > #game-table {
-  flex: 1;
+  flex: auto;
 }
 
 #game-container > #message-box {
-  flex: 3;
+  flex: auto;
 }
 
 #message-box {

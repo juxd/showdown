@@ -108,8 +108,8 @@ hx-trigger=\"load delay:1s\">
          (error-message-to-client
            (handler-case
                (case move
-                 (:choose-thaler (handle-choose-thaler query-alist) nil)
-                 (:choose-color (handle-choose-color query-alist) nil)
+                 (choose-thaler (handle-choose-thaler query-alist) nil)
+                 (choose-color (handle-choose-color query-alist) nil)
                  (t nil))
              (potato-srv.game:invalid-thaler-placement (cond)
                (message-to-client
@@ -146,8 +146,8 @@ hx-trigger=\"load delay:1s\">
                 (alexandria:switch (s :test #'string=)
                   ("get-game" (get-game query-string))
                   ("make-game" (handle-make-game))
-                  ("choose-thaler" (handle-move :choose-thaler query-string))
-                  ("choose-color" (handle-move :choose-color query-string))
+                  ("choose-thaler" (handle-move 'choose-thaler query-string))
+                  ("choose-color" (handle-move 'choose-color query-string))
                   ("style.css" (style.css))
                   ("Showdown_Banner.png" (Showdown_Banner.png))
                   (t (format t "req: ~a ~a ~a~%" query-string path-info (length s))
