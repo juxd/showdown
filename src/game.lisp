@@ -9,6 +9,7 @@
            #:state-phase-seq
            #:echoose-thaler
            #:echoose-color
+           #:echoose-peg-move
            #:get-table-html
            #:generate-move-form
            #:bad-thaler-placement
@@ -109,44 +110,61 @@
            (not (find-color state x y))
            (<= (thaler-dist state x y) (thaler-dist state p-x p-y))))))
 
-(defun generate-move-form (state)
-  (flet ((make-color-choice-form (player)
-           (let* ((color-inputs
-                    (loop for color in '("red"
-                                         "orange"
-                                         "yellow"
-                                         "green"
-                                         "blue"
-                                         "pink"
-                                         "white")
-                          collect (format nil
-                                          "
+(defvar *color-inputs*
+  (apply #'str:concat
+         (loop for color in
+               '("red" "orange" "yellow" "green" "blue" "pink" "white")
+               collect
+               (format nil
+                       "
 <input type=\"radio\" id=\"~a-radio\" name=\"color\" value=\"~a\" checked />
 <label for=\"~a\">~a</label>"
-                                          color
-                                          color
-                                          color
-                                          color)))
-                  (choices (apply #'str:concat color-inputs)))
-             (format nil
-                     "<form hx-get=\"/choose-color\">
+                       color color color color))))
+
+(defvar *coord-inputs*
+  "<label for=\"x\">X</label>
+<input type=\"text\" name=\"x\" id=\"x\" required/>
+<label for=\"y\">Y</label>
+<input type=\"text\" name=\"y\" id=\"y\" required/>")
+
+(defun make-thaler-form ()
+  (format nil
+          "<form hx-get=\"/choose-thaler\" hx-swap=\"none\" id=\"player-choice\">
+~a
+<input type=\"submit\" value=\"Place Thaler\"/>
+</form>"
+          *coord-inputs*))
+
+(defun make-color-choice-form (player)
+  (format nil
+          "<form hx-get=\"/choose-color\">
 <input type=\"hidden\" name=\"player\" value=\"~a\">
 ~a
 <input type=\"submit\" value=\"Choose Color\">
 </form>"
-                     player
-                     choices))))
-    (case (state-phase state)
-      ('p1-thaler "<form hx-get=\"/choose-thaler\" hx-swap=\"none\" id=\"player-choice\">
-<label for=\"x\">X</label>
-<input type=\"text\" name=\"x\" id=\"x\" required/>
-<label for=\"y\">Y</label>
-<input type=\"text\" name=\"y\" id=\"y\" required/>
-<input type=\"submit\" value=\"Place Thaler\"/>
-</form>")
-      (p1-choice (make-color-choice-form "1"))
-      (p2-choice (make-color-choice-form "2"))
-      (t "<div>no move to be made my guy</div>"))))
+          player
+          *color-inputs*))
+
+(defun make-move-choice-form (player)
+  (format nil
+          "<form hx-get=\"/choose-move\">
+<input type=\"hidden\" name=\"player\" value=\"~a\">
+~a
+~a
+<input type=\"submit\" value=\"Choose Move\">
+</form>"
+          player
+          *color-inputs*
+          *coord-inputs*))
+
+(defun generate-move-form (state)
+  (case (state-phase state)
+    (p1-thaler (make-thaler-form))
+    (p1-choice (make-color-choice-form "1"))
+    (p2-choice (make-color-choice-form "2"))
+    (p1-move   (make-move-choice-form  "1"))
+    (p2-move   (make-move-choice-form  "2"))
+    (t "<div>no move to be made my guy</div>")))
 
 (defun change-phase (state phase)
   (setf (state-phase state) phase)
@@ -169,6 +187,30 @@
   (cond ((equal (cons x y) (state-thaler state)) 'thaler)
         (t nil)))
 
+(defun eset-peg-move (state color x y)
+  (let ((index (position color
+                         '(red orange yellow green blue pink white)
+                         :test #'equal)))
+    (format t "index ~a ~a ~a ~a~%" color index (equal color 'white) 'white)
+    (if (find (cons x y)
+              (nth index (state-valid-moves state)))
+        (setf (nth index (state-pegs state)) (cons x y))
+        (error 'invalid-peg-placement
+               :placement (cons x y)
+               :peg color))))
+
+(defun echoose-peg-move (state player color x y)
+  (alexandria:switch ((cons (state-phase state) player) :test #'equal)
+    ('(p1-move . 1)
+      (eset-peg-move state color x y)
+      (change-phase state 'p2-move))
+    ('(p2-move . 2)
+      (eset-peg-move state color x y)
+      (change-phase state 'p1-move))
+    (t (error 'invalid-move-for-phase
+              :move player
+              :phase (state-phase state)))))
+
 (defun eset-thaler (state x y)
   (labels ((message-beside-peg (peg) (format nil "beside a peg: ~a" peg))
            (error-invalid-placement (thaler reason)
@@ -188,7 +230,8 @@
           (t       nil))
     (loop for peg in (state-pegs state)
           do (is-not-adjacent-to (cons x y) peg))
-    (setf (state-thaler state) (cons x y))))
+    (setf (state-thaler state) (cons x y))
+    (update-valid-moves state)))
 
 (defun echoose-thaler (state x y)
   (case (state-phase state)

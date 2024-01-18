@@ -43,16 +43,17 @@
   `(404
     (:content-type "text/plain") ("now thats a bruh")))
 
-(defun make-poller (seq)
+(defun make-poller (seq &key (oob nil))
   (format nil
           "<div
 id=\"game-poller\"
 style=\"{ display: hidden; }\"
 hx-get=\"/get-game?seq=~a\"
-hx-swap=\"outerHTML\"
+~a=\"outerHTML\"
 hx-trigger=\"load delay:1s\">
 </div>"
-          seq))
+          seq
+          (if oob "hx-swap-oob" "hx-swap")))
 
 (defun get-game (query)
   (flet ((game-status (state)
@@ -89,7 +90,7 @@ hx-trigger=\"load delay:1s\">
 
 (defun handle-make-game ()
   (potato-srv.game:create-state)
-  (ok-html nil))
+  (ok-html (list (make-poller -1 :oob t))))
 
 (defun handle-choose-thaler (query-alist)
   (let ((x (parse-integer (cdr (assoc "x" query-alist :test #'string=))))
@@ -103,13 +104,27 @@ hx-trigger=\"load delay:1s\">
                   (cdr (assoc "color" query-alist :test #'string=))))))
     (potato-srv.game:echoose-color potato-srv.game:*singleton-game* player color)))
 
+(defun handle-choose-move (query-alist)
+  (let ((player (parse-integer (cdr (assoc "player" query-alist :test #'string=))))
+        (x (parse-integer (cdr (assoc "x" query-alist :test #'string=))))
+        (y (parse-integer (cdr (assoc "y" query-alist :test #'string=))))
+        (color  (intern
+                 (string-upcase
+                  (cdr (assoc "color" query-alist :test #'string=))))))
+    (format t "~a ~a ~a ~a~%" player x y color)
+    (potato-srv.game:echoose-peg-move potato-srv.game:*singleton-game*
+                                      player
+                                      color
+                                      x y)))
+
 (defun handle-move (move query)
   (let* ((query-alist (query-str-alist query))
          (error-message-to-client
            (handler-case
                (case move
                  (choose-thaler (handle-choose-thaler query-alist) nil)
-                 (choose-color (handle-choose-color query-alist) nil)
+                 (choose-color  (handle-choose-color  query-alist) nil)
+                 (choose-move   (handle-choose-move   query-alist) nil)
                  (t nil))
              (potato-srv.game:invalid-thaler-placement (cond)
                (message-to-client
@@ -144,11 +159,12 @@ hx-trigger=\"load delay:1s\">
            (0 (handle-main))
            (1 (let ((s (nth 0 s)))
                 (alexandria:switch (s :test #'string=)
-                  ("get-game" (get-game query-string))
-                  ("make-game" (handle-make-game))
+                  ("get-game"      (get-game query-string))
+                  ("make-game"     (handle-make-game))
                   ("choose-thaler" (handle-move 'choose-thaler query-string))
-                  ("choose-color" (handle-move 'choose-color query-string))
-                  ("style.css" (style.css))
+                  ("choose-color"  (handle-move 'choose-color query-string))
+                  ("choose-move"   (handle-move 'choose-move query-string))
+                  ("style.css"     (style.css))
                   ("Showdown_Banner.png" (Showdown_Banner.png))
                   (t (format t "req: ~a ~a ~a~%" query-string path-info (length s))
                      (handle-error)))))
