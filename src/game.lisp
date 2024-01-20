@@ -145,7 +145,11 @@
 
 (defun make-thaler-form ()
   (format nil
-          "<form hx-get=\"/choose-thaler\" hx-swap=\"none\" id=\"player-choice\">
+          "<form
+hx-get=\"/choose-thaler\"
+hx-swap=\"none\"
+id=\"player-choice\"
+class=\"form-with-x-y\">
 ~a
 <input type=\"submit\" value=\"Place Thaler\"/>
 </form>"
@@ -163,7 +167,9 @@
 
 (defun make-move-choice-form (player)
   (format nil
-          "<form hx-get=\"/choose-move\">
+          "<form
+hx-get=\"/choose-move\"
+class=\"form-with-x-y\">
 <input type=\"hidden\" name=\"player\" value=\"~a\">
 ~a
 ~a
@@ -207,16 +213,17 @@
   (let ((index (position color
                          '(red orange yellow green blue pink white)
                          :test #'equal)))
-    (if (find (cons x y)
-              (nth index (state-valid-moves state))
-              :test #'equal)
-        (setf (nth index (state-pegs state)) (cons x y))
-        (error 'invalid-peg-placement
-               :placement (cons x y)
-               :peg color
-               :reason (format nil
-                               "not one of valid moves: ~a~%"
-                               (nth index (state-valid-moves state)))))))
+    (cond ((find (cons x y)
+                 (nth index (state-valid-moves state))
+                 :test #'equal)
+           (setf (nth index (state-pegs state)) (cons x y))
+           (update-valid-moves state))
+          (t (error 'invalid-peg-placement
+                    :placement (cons x y)
+                    :peg color
+                    :reason (format nil
+                                    "not one of valid moves: ~a~%"
+                                    (nth index (state-valid-moves state))))))))
 
 (defun echoose-peg-move (state player color x y)
   (alexandria:switch ((cons (state-phase state) player) :test #'equal)

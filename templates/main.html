@@ -30,7 +30,7 @@
         </div>
         <script>
          function setFormXY(x, y) {
-             const form = document.getElementById("player-choice");
+             const form = document.getElementsByClassName("form-with-x-y")[0];
 
              if (!form) return;
              form.elements.x.value = x;
