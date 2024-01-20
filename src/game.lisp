@@ -209,10 +209,37 @@ class=\"form-with-x-y\">
   (cond ((equal (cons x y) (state-thaler state)) 'thaler)
         (t nil)))
 
+(defun color-index (color)
+  (position color
+            '(red orange yellow green blue pink white)
+            :test #'equal))
+
+(defun game-is-ended-by-player (state player &key (else-phase nil))
+  (let* ((color-index-on-thaler
+           (position (state-thaler state)
+                     (state-pegs state)
+                     :test #'equal))
+         (p1-choice-index (color-index (state-player-1-choice state)))
+         (p2-choice-index (color-index (state-player-2-choice state)))
+         (same-choice-by-both
+           (and (equal p1-choice-index p2-choice-index)
+                (equal color-index-on-thaler p1-choice-index)))
+         (both-choice-so-other-player
+           (when same-choice-by-both
+             (case player (1 'p2-won) (2 'p1-won) (t nil)))))
+    (cond ((not color-index-on-thaler) else-phase)
+          (both-choice-so-other-player
+           (list both-choice-so-other-player
+                 "Both player has the same color and it's on the thaler!"
+                 :color (state-player-1-choice state)
+                 :moved-by player))
+          ((equal color-index-on-thaler p1-choice-index)
+           (list 'p1-won "Player 1's color is on the thaler!" :moved-by player))
+          ((equal color-index-on-thaler p2-choice-index)
+           (list 'p2-won "Player 2's color is on the thaler!" :moved-by player)))))
+
 (defun eset-peg-move (state color x y)
-  (let ((index (position color
-                         '(red orange yellow green blue pink white)
-                         :test #'equal)))
+  (let ((index (color-index color)))
     (cond ((find (cons x y)
                  (nth index (state-valid-moves state))
                  :test #'equal)
@@ -229,10 +256,14 @@ class=\"form-with-x-y\">
   (alexandria:switch ((cons (state-phase state) player) :test #'equal)
     ('(p1-move . 1)
       (eset-peg-move state color x y)
-      (change-phase state 'p2-move))
+      (change-phase state (game-is-ended-by-player state
+                                                   player
+                                                   :else-phase 'p2-move)))
     ('(p2-move . 2)
       (eset-peg-move state color x y)
-      (change-phase state 'p1-move))
+      (change-phase state (game-is-ended-by-player state
+                                                   player
+                                                   :else-phase 'p1-move)))
     (t (error 'invalid-move-for-phase
               :move player
               :phase (state-phase state)))))
