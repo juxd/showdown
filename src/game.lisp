@@ -11,6 +11,7 @@
            #:echoose-thaler
            #:echoose-color
            #:echoose-peg-move
+           #:eguess-other-player
            #:get-table-html
            #:generate-move-form
            #:bad-move
@@ -174,10 +175,18 @@ class=\"form-with-x-y\">
 ~a
 ~a
 <input type=\"submit\" value=\"Choose Move\">
+</form>
+<form
+hx-get=\"/guess-other-player\">
+<input type=\"hidden\" name=\"player\" value=\"~a\">
+~a
+<input type=\"submit\" value=\"Guess Opponent's Color\">
 </form>"
           player
           *color-inputs*
-          *coord-inputs*))
+          *coord-inputs*
+          player
+          *color-inputs*))
 
 (defun generate-move-form (state)
   (case (state-phase state)
@@ -251,6 +260,34 @@ class=\"form-with-x-y\">
                     :reason (format nil
                                     "not one of valid moves: ~a~%"
                                     (nth index (state-valid-moves state))))))))
+
+(defun eguess-other-player (state player color)
+  (alexandria:switch ((cons (state-phase state) player) :test #'equal)
+    ('(p1-move . 1)
+      (change-phase
+       state
+       (cond ((equal color (state-player-2-choice state))
+              (list 'p1-won
+                    "Player 1 guessed Player 2's choice and was RIGHT!"
+                    :guess color))
+             (t
+              (list 'p2-won
+                    "Player 1 guessed Player 2's choice and was WRONG!"
+                    :guess color)))))
+    ('(p2-move . 2)
+      (change-phase
+       state
+       (cond ((equal color (state-player-1-choice state))
+              (list 'p2-won
+                    "Player 2 guessed Player 1's choice and was RIGHT!"
+                    :guess color))
+             (t
+              (list 'p1-won
+                    "Player 2 guessed Player 1's choice and was WRONG!"
+                    :guess color)))))
+    (t (error 'invalid-move-for-phase
+              :move player
+              :phase (state-phase state)))))
 
 (defun echoose-peg-move (state player color x y)
   (alexandria:switch ((cons (state-phase state) player) :test #'equal)

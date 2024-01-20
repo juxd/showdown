@@ -118,14 +118,25 @@ hx-trigger=\"load delay:1s\">
                                       color
                                       x y)))
 
+(defun handle-guess-other-player (query-alist)
+  (let ((player (parse-integer (cdr (assoc "player" query-alist :test #'string=))))
+        (color  (intern
+                 (string-upcase
+                  (cdr (assoc "color" query-alist :test #'string=)))
+                 'potato-srv.game)))
+    (potato-srv.game:eguess-other-player potato-srv.game:*singleton-game*
+                                         player
+                                         color)))
+
 (defun handle-move (move query)
   (let* ((query-alist (query-str-alist query))
          (error-message-to-client
            (handler-case
                (case move
-                 (choose-thaler (handle-choose-thaler query-alist) nil)
-                 (choose-color  (handle-choose-color  query-alist) nil)
-                 (choose-move   (handle-choose-move   query-alist) nil)
+                 (choose-thaler      (handle-choose-thaler      query-alist) nil)
+                 (choose-color       (handle-choose-color       query-alist) nil)
+                 (choose-move        (handle-choose-move        query-alist) nil)
+                 (guess-other-player (handle-guess-other-player query-alist) nil)
                  (t nil))
              (potato-srv.game:invalid-peg-placement (cond)
                (message-to-client
@@ -172,6 +183,8 @@ hx-trigger=\"load delay:1s\">
                   ("choose-thaler" (handle-move 'choose-thaler query-string))
                   ("choose-color"  (handle-move 'choose-color query-string))
                   ("choose-move"   (handle-move 'choose-move query-string))
+                  ("guess-other-player"
+                   (handle-move 'guess-other-player query-string))
                   ("style.css"     (style.css))
                   ("Showdown_Banner.png" (Showdown_Banner.png))
                   (t (format t "req: ~a ~a ~a~%" query-string path-info (length s))
