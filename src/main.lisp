@@ -27,6 +27,10 @@
         '(:content-type "image/png")
         (merge-pathnames #P"Showdown_Banner.png" *templates-directory*)))
 
+(defun Chessboard_Image.svg ()
+  (list 200
+        '(:content-type "image/svg+xml")
+        (merge-pathnames #P"Chessboard_Image.svg" *templates-directory*)))
 
 (defun message-to-client (message)
   (format nil
@@ -186,7 +190,8 @@ hx-trigger=\"load delay:1s\">
                   ("guess-other-player"
                    (handle-move 'guess-other-player query-string))
                   ("style.css"     (style.css))
-                  ("Showdown_Banner.png" (Showdown_Banner.png))
+                  ("Showdown_Banner.png"  (Showdown_Banner.png))
+                  ("Chessboard_Image.svg" (Chessboard_Image.svg))
                   (t (format t "req: ~a ~a ~a~%" query-string path-info (length s))
                      (handle-error)))))
            (t (redirect-to-main))))))
