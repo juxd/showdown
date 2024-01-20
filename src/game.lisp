@@ -2,6 +2,7 @@
 (defpackage :potato-srv.game
   (:use :cl)
   (:export :*singleton-game*
+           :invalid-peg-placement
            :invalid-thaler-placement
            :invalid-move-for-phase
            #:create-state
@@ -12,10 +13,13 @@
            #:echoose-peg-move
            #:get-table-html
            #:generate-move-form
-           #:bad-thaler-placement
-           #:bad-thaler-reason
            #:bad-move
-           #:bad-move-phase))
+           #:bad-move-phase
+           #:bad-peg-color
+           #:bad-peg-placement
+           #:bad-peg-reason
+           #:bad-thaler-placement
+           #:bad-thaler-reason))
 
 (in-package :potato-srv.game)
 
@@ -27,6 +31,18 @@
            :initform nil
            :reader bad-thaler-reason))
   (:documentation "When someone tried to place a thaler at a bad place"))
+
+(define-condition invalid-peg-placement (error)
+  ((peg :initarg :peg
+        :initform nil
+        :reader bad-peg-color)
+   (placement :initarg :placement
+              :initform nil
+              :reader bad-peg-placement)
+   (reason :initarg :reason
+           :initform nil
+           :reader bad-peg-reason))
+  (:documentation "When someone tried to move a peg to a bad place"))
 
 (define-condition invalid-move-for-phase (error)
   ((move :initarg :move
@@ -191,13 +207,16 @@
   (let ((index (position color
                          '(red orange yellow green blue pink white)
                          :test #'equal)))
-    (format t "index ~a ~a ~a ~a~%" color index (equal color 'white) 'white)
     (if (find (cons x y)
-              (nth index (state-valid-moves state)))
+              (nth index (state-valid-moves state))
+              :test #'equal)
         (setf (nth index (state-pegs state)) (cons x y))
         (error 'invalid-peg-placement
                :placement (cons x y)
-               :peg color))))
+               :peg color
+               :reason (format nil
+                               "not one of valid moves: ~a~%"
+                               (nth index (state-valid-moves state)))))))
 
 (defun echoose-peg-move (state player color x y)
   (alexandria:switch ((cons (state-phase state) player) :test #'equal)

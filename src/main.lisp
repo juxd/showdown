@@ -101,7 +101,8 @@ hx-trigger=\"load delay:1s\">
   (let ((player (parse-integer (cdr (assoc "player" query-alist :test #'string=))))
         (color  (intern
                  (string-upcase
-                  (cdr (assoc "color" query-alist :test #'string=))))))
+                  (cdr (assoc "color" query-alist :test #'string=)))
+                 'potato-srv.game)))
     (potato-srv.game:echoose-color potato-srv.game:*singleton-game* player color)))
 
 (defun handle-choose-move (query-alist)
@@ -110,8 +111,8 @@ hx-trigger=\"load delay:1s\">
         (y (parse-integer (cdr (assoc "y" query-alist :test #'string=))))
         (color  (intern
                  (string-upcase
-                  (cdr (assoc "color" query-alist :test #'string=))))))
-    (format t "~a ~a ~a ~a~%" player x y color)
+                  (cdr (assoc "color" query-alist :test #'string=)))
+                 'potato-srv.game)))
     (potato-srv.game:echoose-peg-move potato-srv.game:*singleton-game*
                                       player
                                       color
@@ -126,6 +127,13 @@ hx-trigger=\"load delay:1s\">
                  (choose-color  (handle-choose-color  query-alist) nil)
                  (choose-move   (handle-choose-move   query-alist) nil)
                  (t nil))
+             (potato-srv.game:invalid-peg-placement (cond)
+               (message-to-client
+                (format nil
+                        "(only you): bad peg ~a@~a -- ~a"
+                        (potato-srv.game:bad-peg-color cond)
+                        (potato-srv.game:bad-peg-placement cond)
+                        (potato-srv.game:bad-peg-reason cond))))
              (potato-srv.game:invalid-thaler-placement (cond)
                (message-to-client
                 (format nil
