@@ -83,7 +83,10 @@ h2 {
 }
 
 #game-container > #game-table {
-  flex: auto;
+    position: relative;
+    background-image: url('/Chessboard_Image.svg'); 
+    background-size: cover;
+    background-position: center;
 }
 
 #game-container > #message-box {
