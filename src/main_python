@@ -1,0 +1,232 @@
+class InvalidThalerPlacement(Exception):
+    def __init__(self, placement, reason):
+        self.placement = placement
+        self.reason = reason
+
+class InvalidPegPlacement(Exception):
+    def __init__(self, peg, placement, reason):
+        self.peg = peg
+        self.placement = placement
+        self.reason = reason
+
+class InvalidMoveForPhase(Exception):
+    def __init__(self, move, phase):
+        self.move = move
+        self.phase = phase
+
+class State:
+    def __init__(self, pegs, thaler, player_1_choice, player_2_choice, phase_seq, phase, valid_moves):
+        self.pegs = pegs
+        self.thaler = thaler
+        self.player_1_choice = player_1_choice
+        self.player_2_choice = player_2_choice
+        self.phase_seq = phase_seq
+        self.phase = phase
+        self.valid_moves = valid_moves
+
+def generate_seven_coordinates():
+    import random
+    return [(x // 8, x % 8) for x in random.sample(range(64), 7)]
+
+def create_state():
+    singleton_game = State(
+        pegs=generate_seven_coordinates(),
+        thaler=None,
+        player_1_choice=None,
+        player_2_choice=None,
+        phase_seq=0,
+        phase='p1-thaler',
+        valid_moves=[]
+    )
+    return singleton_game
+
+def update_valid_moves(state):
+    state.valid_moves = [
+        [(x + dx, y + dy) for dx, dy in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]]
+        for x, y in state.pegs
+    ]
+
+def find_color(state, x, y):
+    return next(((i, j) for i, row in enumerate(state.pegs) for j, peg in enumerate(row) if peg == (x, y)), None)
+
+def thaler_dist(state, x, y):
+    tx, ty = state.thaler
+    return min(abs(x - tx), abs(y - ty)) + abs(abs(x - tx) - abs(y - ty))
+
+def dir_is_valid_1(state, peg_pos, direction):
+    (px, py), (dx, dy) = peg_pos, direction
+    x, y = px + dx, py + dy
+    return 0 <= x < 8 and 0 <= y < 8 and find_color(state, x, y) is None and thaler_dist(state, x, y) <= thaler_dist(state, px, py)
+
+def dir_is_valid_2(state, peg_pos, direction):
+    (px, py), (dx, dy) = peg_pos, direction
+    x1, y1 = px + dx, py + dy
+    x, y = px + 2 * dx, py + 2 * dy
+    return 0 <= x1 < 8 and 0 <= y1 < 8 and find_color(state, x1, y1) is not None and find_color(state, x, y) is None and thaler_dist(state, x, y) <= thaler_dist(state, px, py)
+
+color_inputs = ''.join([
+    f'\n<input type="radio" id="{color}-radio" name="color" value="{color}" checked />\n<label for="{color}">{color}</label>'
+    for color in ["red", "orange", "yellow", "green", "blue", "pink", "white"]
+])
+
+coord_inputs = '<label for="x">X</label>\n<input type="text" name="x" id="x" required/>\n<label for="y">Y</label>\n<input type="text" name="y" id="y" required/>'
+
+def make_thaler_form():
+    return f'<form hx-get="/choose-thaler" hx-swap="none" id="player-choice" class="form-with-x-y">\n{coord_inputs}\n<input type="submit" value="Place Thaler"/>\n</form>'
+
+def make_color_choice_form(player):
+    return f'<form hx-get="/choose-color">\n<input type="hidden" name="player" value="{player}">\n{color_inputs}\n<input type="submit" value="Choose Color">\n</form>'
+
+def make_move_choice_form(player):
+    return f'<form hx-get="/choose-move" class="form-with-x-y">\n<input type="hidden" name="player" value="{player}">\n{color_inputs}\n{coord_inputs}\n<input type="submit" value="Choose Move">\n</form>\n<form hx-get="/guess-other-player">\n<input type="hidden" name="player" value="{player}">\n{color_inputs}\n<input type="submit" value="Guess Opponent\'s Color">\n</form>'
+
+def generate_move_form(state):
+    phase = state.phase
+    if phase == 'p1-thaler':
+        return make_thaler_form()
+    elif phase == 'p1-choice' or phase == 'p2-choice':
+        return make_color_choice_form("1" if phase == 'p1-choice' else "2")
+    elif phase == 'p1-move' or phase == 'p2-move':
+        return make_move_choice_form("1" if phase == 'p1-move' else "2")
+    else:
+        return '<div>no move to be made my guy</div>'
+
+def change_phase(state, phase):
+    state.phase = phase
+    state.phase_seq += 1
+
+def echoose_color(state, player, color):
+    phase_player = (state.phase, player)
+    if phase_player == ('p1-choice', 1):
+        state.player_1_choice = color
+        change_phase(state, 'p2-move')
+    elif phase_player == ('p2-choice', 2):
+        state.player_2_choice = color
+        change_phase(state, 'p1-choice')
+    else:
+        raise InvalidMoveForPhase(player, state.phase)
+
+def maybe_thaler(state, x, y):
+    return 'thaler' if (x, y) == state.thaler else None
+
+def color_index(color):
+    colors = ["red", "orange", "yellow", "green", "blue", "pink", "white"]
+    return next((i for i, c in enumerate(colors) if c == color), None)
+
+def game_is_ended_by_player(state, player, else_phase=None):
+    color_index_on_thaler = color_index(maybe_thaler(state, *state.thaler))
+    p1_choice_index = color_index(state.player_1_choice)
+    p2_choice_index = color_index(state.player_2_choice)
+    same_choice_by_both = p1_choice_index == p2_choice_index and color_index_on_thaler == p1_choice_index
+    both_choice_so_other_player = None
+    if same_choice_by_both:
+        if player == 1:
+            both_choice_so_other_player = 'p2-won'
+        elif player == 2:
+            both_choice_so_other_player = 'p1-won'
+    if not color_index_on_thaler:
+        return else_phase
+    elif both_choice_so_other_player:
+        return both_choice_so_other_player, "Both players have the same color, and it's on the thaler!", {"color": state.player_1_choice, "moved_by": player}
+    elif color_index_on_thaler == p1_choice_index:
+        return 'p1-won', "Player 1's color is on the thaler!", {"moved_by": player}
+    elif color_index_on_thaler == p2_choice_index:
+        return 'p2-won', "Player 2's color is on the thaler!", {"moved_by": player}
+
+def eset_peg_move(state, color, x, y):
+    index = color_index(color)
+    valid_moves = state.valid_moves[index]
+    if (x, y) in valid_moves:
+        state.pegs[index] = (x, y)
+        update_valid_moves(state)
+    else:
+        raise InvalidPegPlacement(color, (x, y), f'not one of valid moves: {valid_moves}')
+
+def eguess_other_player(state, player, color):
+    phase_player = (state.phase, player)
+    if phase_player == ('p1-move', 1):
+        change_phase(state, *game_is_ended_by_player(state, player, else_phase='p2-move'))
+    elif phase_player == ('p2-move', 2):
+        change_phase(state, *game_is_ended_by_player(state, player, else_phase='p1-move'))
+    else:
+        raise InvalidMoveForPhase(player, state.phase)
+    return game_is_ended_by_player(state, player, else_phase='p1-move' if player == 2 else 'p2-move')
+
+def echoose_peg_move(state, player, color, x, y):
+    phase_player = (state.phase, player)
+    if phase_player == ('p1-move', 1):
+        eset_peg_move(state, color, x, y)
+        change_phase(state, *game_is_ended_by_player(state, player, else_phase='p2-move'))
+    elif phase_player == ('p2-move', 2):
+        eset_peg_move(state, color, x, y)
+        change_phase(state, *game_is_ended_by_player(state, player, else_phase='p1-move'))
+    else:
+        raise InvalidMoveForPhase(player, state.phase)
+
+def eset_thaler(state, x, y):
+    def message_beside_peg(peg):
+        return f'beside a peg: {peg}'
+
+    def error_invalid_placement(thaler, reason):
+        raise InvalidThalerPlacement(thaler, reason)
+
+    def is_not_adjacent_to(thaler, peg):
+        (tx, ty), (px, py) = thaler, peg
+        if abs(px - tx) <= 1 and abs(py - ty) <= 1:
+            error_invalid_placement(thaler, message_beside_peg(peg))
+
+    if x < 0 or x >= 8:
+        error_invalid_placement((x, y), 'out of board')
+    if y < 0 or y >= 8:
+        error_invalid_placement((x, y), 'out of board')
+    for peg in state.pegs:
+        is_not_adjacent_to((x, y), peg)
+    state.thaler = (x, y)
+    update_valid_moves(state)
+
+def echoose_thaler(state, x, y):
+    if state.phase == 'p1-thaler':
+        eset_thaler(state, x, y)
+        change_phase(state, 'p2-choice')
+    else:
+        raise InvalidMoveForPhase('choose-thaler', state.phase)
+
+def get_table(state):
+    def piece_to_cell(piece, x, y):
+        def format_td(css_class, content, piece=""):
+            return f'<td class="{css_class}" x_pos="{x}" y_pos="{y}" {piece}>{content}</td>\n'
+        
+        def empty_cell(color):
+            return format_td(f"empty{color}", "", piece="piece=\"{color}\"")
+
+        return {
+            0: format_td("r-piece", "R", piece="piece=\"r\""),
+            1: format_td("o-piece", "O", piece="piece=\"o\""),
+            2: format_td("y-piece", "Y", piece="piece=\"y\""),
+            3: format_td("g-piece", "G", piece="piece=\"g\""),
+            4: format_td("b-piece", "B", piece="piece=\"b\""),
+            5: format_td("p-piece", "P", piece="piece=\"p\""),
+            6: format_td("w-piece", "W", piece="piece=\"w\""),
+            "thaler": format_td("t-piece", "T", piece="piece=\"t\""),
+            "empty1": empty_cell(1),
+            "empty2": empty_cell(2),
+        }.get(piece, "")
+
+    table = [f'<div id="game-table" hx-swap-oob="true">\n<table id="game-table-contents">\n']
+    table.append(f'<tr><td></td>{"".join([f"<td>{x}</td>" for x in range(8)])}</tr>\n')
+
+    for y, row in enumerate(get_table(state)):
+        cells = [piece_to_cell(piece, x, y) for x, piece in enumerate(row)]
+        row_html = f'<tr><td>{y}</td>{"".join(cells)}</tr>\n'
+        table.append(row_html)
+
+    table.append('</table>\n</div>\n')
+    return table
+
+def get_table_html(state):
+    return get_table(state)
+
+# Usage example:
+state = create_state()
+update_valid_moves(state)
+print(generate_move_form(state))
